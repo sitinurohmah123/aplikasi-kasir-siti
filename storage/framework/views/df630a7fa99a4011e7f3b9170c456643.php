@@ -1,0 +1,298 @@
+<div class="card card-cyan card-outline">
+    <div class="card-body">
+        <h3 class="m-0 text-right">Rp: <span id="totalJumlah">0</span> ,-</h3>
+    </div>
+</div>
+
+<?php if($errors->any()): ?>
+    <div class="alert alert-danger">
+        <ul>
+            <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <li><?php echo e($error); ?></li>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+        </ul>
+    </div>
+<?php endif; ?>
+
+
+<form action="<?php echo e(route('transaksi.store')); ?>" method="POST" class="card card-cyan card-outline">
+    <?php echo csrf_field(); ?>
+    <div class="card-body">
+        <p class="text-right">
+            Tanggal: <?php echo e($tanggal); ?>
+
+        </p>
+        <div class="row">
+            <div class="col">
+                <label>Nama Pelanggan</label>
+                <select id="pelangganId" name="pelanggan_id" class="form-control <?php $__errorArgs = ['pelanggan_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>">
+                <option value="">Pilih Pelanggan</option>
+                <?php $__currentLoopData = $pelanggans; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pelanggan): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <option value="<?php echo e($pelanggan->id); ?>"><?php echo e($pelanggan->nama); ?></option>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </select>
+                <?php $__errorArgs = ['pelanggan_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                    <div class="invalid-feedback">
+                        <?php echo e($message); ?>
+
+                    </div>
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+            </div>
+            <div class="col">
+                <input type="hidden" id="namaPelanggan" name="nama_pelanggan">
+            </div>
+            <div class="col">
+                <label>Nama Kasir</label>
+                <input type="text" class="form-control" value="<?php echo e($nama_kasir); ?>" disabled>
+            </div>
+        </div>
+        <table class="table table-striped table-hover table-bordered st-3">
+            <thead>
+                <tr>
+                    <th>Nama Produk</th>
+                    <th>Qty</th>
+                    <th>Harga</th>
+                    <th>Sub Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="resultCart">
+                <tr>
+                    <td colspan="5" class="text-center"> Tidak ada data.</td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="row at-3">
+            <div class="col-2 offset-6">
+                <p>Total</p>
+                <p>Pajak 10% </p>
+                <!-- Tambahkan view diskon di bawah pajak -->
+                <p>Diskon</p>
+                <p>Total Bayar</p>
+            </div>
+            <div class="col-4 text-right">
+                <p id="subtotal">0</p>
+                <p id="taxAmount">0</p>
+                <p id="diskon">0</p> <!-- Menampilkan nilai diskon -->
+                <p id="total">0</p>
+            </div>
+        </div>
+        <div class="col-6 offset-6">
+            <hr class="mt-0">
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Cash</span>
+                </div>
+                <input type="text" name="cash" class="form-control <?php $__errorArgs = ['cash'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" placeholder="Jumlah Cash" value="<?php echo e(old('cash')); ?>">
+            </div>
+            <input type="hidden" name="total_bayar" id="totalBayar" />
+            <?php $__errorArgs = ['cash'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                <div class="invalid-feedback d-block">
+                    <?php echo e($message); ?>
+
+                </div>
+            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+        </div>
+        <div class="col-12 form-inline mt-3">
+            <a href="<?php echo e(route('transaksi.index')); ?>" class="btn btn-secondary mr-2">Ke Transaksi</a>
+            <a href="<?php echo e(route('cart.clear')); ?>" class="btn btn-danger">Kosongkan</a>
+            <button type="submit" class="btn btn-success ml-auto">
+                <i class="fas fa-money-bill-wave mr-2"></i> Bayar Transaksi
+            </button>
+        </div>
+    </div>
+</form>
+
+<?php $__env->startPush('scripts'); ?>
+    <script>
+        $(function() {
+            fetchCart();
+        });
+
+        function fetchCart() {
+            $.getJSON("/cart", function(response) {
+                $('#resultCart').empty();
+
+                const {
+                    items,
+                    subtotal,
+                    tax_amount,
+                    total,
+                    extra_info
+                } = response;
+
+                $('#subtotal').html(rupiah(subtotal));
+                $('#taxAmount').html(rupiah(tax_amount));
+                $('#total, #totalJumlah').html(rupiah(total));
+                $('#totalBayar').val(total);
+                
+
+                // Hitung diskon jika subtotal melebihi 49000
+                let diskon = 0;
+                if (subtotal > 45000) {
+                    diskon = 5000;
+                }
+                // Tampilkan nilai diskon
+                $('[name="diskon"]').val(diskon);
+
+                // Hitung total bayar setelah diskon
+                const totalBayarSetelahDiskon = total - diskon;
+
+                $('#subtotal').html(rupiah(subtotal));
+                $('#taxAmount').html(rupiah(tax_amount));
+                // Tambahkan kode untuk menampilkan diskon
+                $('#diskon').html(rupiah(diskon));
+
+                $('#total').html(rupiah(totalBayarSetelahDiskon));
+                $('#totalBayar').val(totalBayarSetelahDiskon);
+                // Update totalJumlah dengan totalBayarSetelahDiskon
+                $('#totalJumlah').html(rupiah(totalBayarSetelahDiskon))
+                for (const property in items) {
+                    addRow(items[property]);
+                }
+
+                if (Array.isArray(items) && items.length === 0) {
+                    $('#resultCart').html('<tr><td colspan="5" class="text-center">Tidak ada data.</td></tr>');
+                }
+
+                if (extra_info && extra_info.pelanggan) {
+                    const {
+                        id,
+                        nama
+                    } = extra_info.pelanggan;
+                    $('#namaPelanggan').val(nama);
+                    $('#pelangganId').val(id);
+                }
+
+            });
+        }
+
+        function addRow(item) {
+            const {
+                hash,
+                price,
+                title,
+                quantity,
+                total_price
+            } = item;
+
+            let btn = `<button type="button" class="btn btn-xs btn-success mr-2" onclick="ePut('${hash}',${quantity + 1})">
+                <i class="fas fa-plus"></i>
+                </button>`;
+
+            btn += `<button type="button" class="btn btn-xs btn-primary mr-2" onclick="ePut('${hash}',${quantity - 1})">
+                <i class="fas fa-minus"></i>
+                </button>`;
+
+            btn += `<button type="button" class="btn btn-xs btn-danger" onclick="eDel('${hash}')">
+                <i class="fas fa-times"></i>
+                </button>`;
+
+            const row = `<tr>
+                <td>${title}</td>
+                <td><input type="number" class="form-control form-control-sm qty-input" data-hash="${hash}" value="${quantity}" min="1"></td>
+                <td>${rupiah(price)}</td>
+                <td>${rupiah(total_price)}</td>
+                <td>${ btn }</td>
+                </tr>`;
+
+            $('#resultCart').append(row);
+
+            $('.qty-input').on('input change keyup', function() {
+                const hash = $(this).data('hash');
+                const newQty = $(this).val();
+                // Kirim perubahan ke server menggunakan AJAX
+                ePut(hash, newQty);
+            });
+        }
+
+        function rupiah(number) {
+            return new Intl.NumberFormat("id-ID").format(number);
+        }
+
+        function ePut(hash, qty) {
+    $.ajax({
+        type: "PUT",
+        url: '/cart/' + hash,
+        data: {
+            qty: qty
+        },
+        dataType: "json",
+        success: function(response) {
+            fetchCart();
+            // Perbarui nilai qty-input sesuai dengan nilai yang dikembalikan oleh server
+            $('.qty-input[data-hash="${hash}"]').each(function() {
+                if ($(this).data('hash') === hash) {
+                    $(this).val(response.items[hash].quantity);
+                }
+            });
+        },
+        error: function(xhr, status, error) {
+            console.error(error);
+        }
+    });
+}
+
+
+        function eDel(hash) {
+            $.ajax({
+                type: "DELETE",
+                url: '/cart/' + hash,
+                dataType: "json",
+                success: function(response) {
+                    fetchCart();
+                }
+            });
+        }
+
+        // Penanganan perubahan pada input nama pelanggan
+        $('#pelangganId').change(function(event) {
+            event.preventDefault();
+            const pelangganId = $(this).val();
+            $.ajax({
+                type: "POST",
+                url: '/transaksi/add-pelanggan',
+                data: {
+                    id: pelangganId,
+                    _token: '<?php echo e(csrf_token()); ?>'
+                },
+                dataType: "json",
+                success: function(response) {
+                    // Tambahkan logika jika diperlukan
+                    $('#namaPelanggan').val(response.nama);
+                },
+                error: function(xhr, status, error) {
+                    console.error(error);
+                }
+            });
+        });
+    </script>
+<?php $__env->stopPush(); ?><?php /**PATH C:\xampp\htdocs\kasir-toko\resources\views/transaksi/form-cart.blade.php ENDPATH**/ ?>
